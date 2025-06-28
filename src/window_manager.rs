@@ -1,10 +1,10 @@
 use std::sync::{Arc, Mutex};
 use windows::Win32::{
-    Foundation::{HWND, LPARAM},
+    Foundation::{HWND, LPARAM, RECT},
     Graphics::Gdi::{
         BI_RGB, BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleBitmap, CreateCompatibleDC,
-        DIB_RGB_COLORS, DeleteDC, DeleteObject, GetDC, GetDIBits, HBITMAP, HDC, HGDIOBJ, ReleaseDC,
-        SelectObject,
+        DIB_RGB_COLORS, DeleteDC, DeleteObject, EnumDisplayMonitors, GetDC, GetDIBits,
+        GetMonitorInfoW, HBITMAP, HDC, HGDIOBJ, HMONITOR, MONITORINFO, ReleaseDC, SelectObject,
     },
     System::Diagnostics::ToolHelp::{
         CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW,
@@ -29,6 +29,17 @@ pub struct WindowInfo
     pub icon_data: Option<Vec<u8>>,
 }
 
+#[derive(Debug, Clone)]
+pub struct DisplayInfo
+{
+    pub name: String,
+    pub x: i32,
+    pub y: i32,
+    pub width: i32,
+    pub height: i32,
+    pub is_primary: bool,
+}
+
 impl WindowInfo
 {
     pub fn display_text(&self) -> String
@@ -51,6 +62,15 @@ impl WindowInfo
         };
 
         format!("{} ({})", truncated_title, truncated_process)
+    }
+}
+
+impl DisplayInfo
+{
+    pub fn display_text(&self) -> String
+    {
+        let primary_indicator = if self.is_primary { " (Primary)" } else { "" };
+        format!("{} - {}x{}{}", self.name, self.width, self.height, primary_indicator)
     }
 }
 
@@ -113,7 +133,38 @@ impl WindowManager
         self.windows = windows;
     }
 
-    pub fn toggle_borderless(&self, hwnd: isize, resize_to_screen: bool) -> anyhow::Result<()>
+    pub fn get_displays(&self) -> Vec<DisplayInfo>
+    {
+        let mut displays = Vec::new();
+
+        unsafe {
+            let _ = EnumDisplayMonitors(
+                Some(HDC::default()),
+                None,
+                Some(enum_monitors_proc),
+                LPARAM(&mut displays as *mut Vec<DisplayInfo> as isize),
+            );
+        }
+
+        displays.sort_by(|a: &DisplayInfo, b: &DisplayInfo| {
+            if a.is_primary && !b.is_primary {
+                std::cmp::Ordering::Less
+            } else if !a.is_primary && b.is_primary {
+                std::cmp::Ordering::Greater
+            } else {
+                a.name.cmp(&b.name)
+            }
+        });
+
+        displays
+    }
+
+    pub fn toggle_borderless(
+        &self,
+        hwnd: isize,
+        resize_to_screen: bool,
+        selected_display: Option<&DisplayInfo>,
+    ) -> anyhow::Result<()>
     {
         let hwnd = HWND(hwnd as *mut std::ffi::c_void);
 
@@ -131,16 +182,21 @@ impl WindowManager
             SetWindowLongW(hwnd, GWL_STYLE, new_style as i32);
 
             if resize_to_screen && (current_style & border_styles) != 0 {
-                let screen_width = GetSystemMetrics(SM_CXSCREEN);
-                let screen_height = GetSystemMetrics(SM_CYSCREEN);
+                let (x, y, width, height) = if let Some(display) = selected_display {
+                    (display.x, display.y, display.width, display.height)
+                } else {
+                    let screen_width = GetSystemMetrics(SM_CXSCREEN);
+                    let screen_height = GetSystemMetrics(SM_CYSCREEN);
+                    (0, 0, screen_width, screen_height)
+                };
 
                 SetWindowPos(
                     hwnd,
                     Some(HWND_TOP),
-                    0,
-                    0,
-                    screen_width,
-                    screen_height,
+                    x,
+                    y,
+                    width,
+                    height,
                     SWP_FRAMECHANGED | SWP_NOZORDER,
                 )?;
             } else {
@@ -245,6 +301,41 @@ fn get_process_name(process_id: u32) -> Option<String>
     }
 
     None
+}
+
+unsafe extern "system" fn enum_monitors_proc(
+    hmonitor: HMONITOR,
+    _hdc: HDC,
+    _rect: *mut RECT,
+    lparam: LPARAM,
+) -> windows::core::BOOL
+{
+    unsafe {
+        let displays_ptr = lparam.0 as *mut Vec<DisplayInfo>;
+        let displays = &mut *displays_ptr;
+
+        let mut monitor_info =
+            MONITORINFO { cbSize: std::mem::size_of::<MONITORINFO>() as u32, ..Default::default() };
+
+        if GetMonitorInfoW(hmonitor, &mut monitor_info).as_bool() {
+            let width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
+            let height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
+            let is_primary = monitor_info.dwFlags == 1;
+
+            let name = format!("Display {}", displays.len() + 1);
+
+            displays.push(DisplayInfo {
+                name,
+                x: monitor_info.rcMonitor.left,
+                y: monitor_info.rcMonitor.top,
+                width,
+                height,
+                is_primary,
+            });
+        }
+
+        true.into()
+    }
 }
 
 struct GdiResources

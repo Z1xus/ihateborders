@@ -1,6 +1,6 @@
 use crate::{
     ui::{self, IconCacheInterface},
-    window_manager::WindowManager,
+    window_manager::{DisplayInfo, WindowManager},
 };
 use eframe::egui;
 use std::{
@@ -90,6 +90,8 @@ pub struct BorderlessApp
     last_refresh: std::time::Instant,
     icon_cache: IconCache,
     resize_to_screen: bool,
+    selected_display: Option<usize>,
+    displays: Vec<DisplayInfo>,
     needs_repaint: bool,
     refresh_receiver: Option<Receiver<Vec<crate::window_manager::WindowInfo>>>,
 }
@@ -100,12 +102,17 @@ impl BorderlessApp
     {
         ui::setup_dark_theme(&cc.egui_ctx);
 
+        let window_manager = WindowManager::new();
+        let displays = window_manager.get_displays();
+
         let mut app = Self {
-            window_manager: WindowManager::new(),
+            window_manager,
             selected_window: None,
             last_refresh: std::time::Instant::now(),
             icon_cache: IconCache::new(),
             resize_to_screen: false,
+            selected_display: if !displays.is_empty() { Some(0) } else { None },
+            displays,
             needs_repaint: false,
             refresh_receiver: None,
         };
@@ -166,9 +173,17 @@ impl BorderlessApp
     {
         let windows = self.window_manager.get_windows();
         if let Some(window) = windows.get(window_index) {
-            if let Err(e) =
-                self.window_manager.toggle_borderless(window.hwnd, self.resize_to_screen)
-            {
+            let selected_display = if self.resize_to_screen {
+                self.selected_display.and_then(|idx| self.displays.get(idx))
+            } else {
+                None
+            };
+
+            if let Err(e) = self.window_manager.toggle_borderless(
+                window.hwnd,
+                self.resize_to_screen,
+                selected_display,
+            ) {
                 eprintln!("Failed to toggle borderless for window '{}': {}", window.title, e);
             } else {
                 self.refresh_receiver = None;
@@ -201,6 +216,10 @@ impl eframe::App for BorderlessApp
             );
 
             ui::render_position_checkbox(ui, &mut self.resize_to_screen);
+
+            if self.resize_to_screen {
+                ui::render_display_selector(ui, &self.displays, &mut self.selected_display);
+            }
 
             if let Some(window_index) = ui::render_action_button(ui, windows, self.selected_window)
             {

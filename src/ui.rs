@@ -1,4 +1,4 @@
-use crate::window_manager::WindowInfo;
+use crate::window_manager::{DisplayInfo, WindowInfo};
 use egui::{
     Align, Align2, Color32, ColorImage, FontId, Layout, RichText, Sense, Stroke, Style, Visuals,
 };
@@ -221,6 +221,54 @@ pub fn render_position_checkbox(ui: &mut egui::Ui, resize_to_screen: &mut bool)
                 .font(FontId::proportional(12.0))
                 .color(Color32::from_gray(180)),
         );
+    });
+}
+
+pub fn render_display_selector(
+    ui: &mut egui::Ui,
+    displays: &[DisplayInfo],
+    selected_display: &mut Option<usize>,
+)
+{
+    ui.add_space(5.0);
+
+    ui.horizontal(|ui| {
+        ui.add_space(5.0);
+
+        ui.label(
+            RichText::new("Display:")
+                .font(FontId::proportional(12.0))
+                .color(Color32::from_gray(180)),
+        );
+    });
+
+    ui.add_space(3.0);
+
+    let selected_text = if let Some(index) = selected_display {
+        if let Some(display) = displays.get(*index) {
+            display.display_text()
+        } else {
+            "Select a display...".to_string()
+        }
+    } else {
+        "Select a display...".to_string()
+    };
+
+    ui.horizontal(|ui| {
+        ui.add_space(5.0);
+
+        egui::ComboBox::from_id_salt("display_selector")
+            .selected_text(selected_text)
+            .width(ui.available_width() - 10.0)
+            .show_ui(ui, |ui| {
+                for (index, display) in displays.iter().enumerate() {
+                    let response = ui
+                        .selectable_label(*selected_display == Some(index), display.display_text());
+                    if response.clicked() {
+                        *selected_display = Some(index);
+                    }
+                }
+            });
     });
 }
 
