@@ -1,0 +1,16 @@
+edition = "2024"
+use_small_heuristics = "Max"
+wrap_comments = true
+format_code_in_doc_comments = true
+normalize_doc_attributes = true
+imports_granularity = "Crate"
+group_imports = "One"
+reorder_impl_items = true
+format_macro_matchers = true
+format_macro_bodies = true
+match_block_trailing_comma = true
+unstable_features = true
+comment_width = 100
+hard_tabs = false
+newline_style = "Unix"
+brace_style = "AlwaysNextLine"

@@ -1,0 +1,35 @@
+[package]
+name = "ihateborders"
+version = "1.0.0"
+edition = "2024"
+
+[dependencies]
+eframe = { version = "0.31", default-features = false, features = [
+    "default_fonts",
+    "glow",
+] }
+egui = { version = "0.31", default-features = false, features = [
+    "default_fonts",
+] }
+windows = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_Graphics_Gdi",
+    "Win32_UI_Shell",
+] }
+anyhow = { version = "1.0", default-features = false }
+image = { version = "0.25", default-features = false, features = ["ico", "png"] }
+
+[build-dependencies]
+embed-resource = { version = "3.0", default-features = false }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 1
