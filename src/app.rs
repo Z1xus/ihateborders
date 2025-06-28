@@ -110,7 +110,7 @@ impl BorderlessApp
             selected_window: None,
             last_refresh: std::time::Instant::now(),
             icon_cache: IconCache::new(),
-            resize_to_screen: false,
+            resize_to_screen: true,
             selected_display: if !displays.is_empty() { Some(0) } else { None },
             displays,
             needs_repaint: false,
