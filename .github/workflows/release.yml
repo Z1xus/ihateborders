@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release
+        run: cargo build --release
+
+      - name: UPX compress executable
+        uses: crazy-max/ghaction-upx@v3
+        with:
+          files: |
+            target/release/ihateborders.exe
+          args: --best --lzma
+
+      - name: Generate SHA256SUMS.txt
+        run: |
+          $exe = "target/release/ihateborders.exe"
+          $hash = (Get-FileHash -Algorithm SHA256 $exe).Hash.ToLower()
+          "$hash  ihateborders.exe" | Out-File -Encoding ascii SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            target/release/ihateborders.exe
+            SHA256SUMS.txt
