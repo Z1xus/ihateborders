@@ -16,8 +16,10 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - uses: swatinem/rust-cache@v2
+
       - name: Build release
-        run: cargo build --release
+        run: cargo build --release --locked
 
       - name: UPX compress executable
         uses: crazy-max/ghaction-upx@v3
@@ -39,3 +41,4 @@ jobs:
           files: |
             target/release/ihateborders.exe
             SHA256SUMS.txt
+          draft: true
