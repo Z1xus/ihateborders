@@ -110,7 +110,7 @@ impl BorderlessApp
 
         let window_manager = WindowManager::new();
         let displays = window_manager.get_displays();
-        
+
         let config = Config::load().unwrap_or_default();
 
         let mut app = Self {
@@ -167,14 +167,14 @@ impl BorderlessApp
             self.start_async_refresh();
         }
     }
-    
+
     fn apply_auto_borderless(&mut self)
     {
         let windows = self.window_manager.get_windows().to_vec();
-        
+
         for window in windows.iter() {
-            if self.config.is_auto_borderless(&window.process_name) 
-                && !window.is_borderless 
+            if self.config.is_auto_borderless(&window.process_name)
+                && !window.is_borderless
                 && !self.applied_auto_borderless.contains(&window.hwnd)
             {
                 let selected_display = if self.resize_to_screen {
@@ -182,7 +182,7 @@ impl BorderlessApp
                 } else {
                     None
                 };
-                
+
                 if let Ok(_) = self.window_manager.toggle_borderless(
                     window.hwnd,
                     self.resize_to_screen,
@@ -221,11 +221,9 @@ impl BorderlessApp
             None
         };
 
-        if let Err(e) = self.window_manager.toggle_borderless(
-            hwnd,
-            self.resize_to_screen,
-            selected_display,
-        ) {
+        if let Err(e) =
+            self.window_manager.toggle_borderless(hwnd, self.resize_to_screen, selected_display)
+        {
             eprintln!("Failed to toggle borderless for window: {}", e);
         } else {
             if let Some(window) = self.window_manager.get_window_mut(window_index) {
@@ -236,20 +234,20 @@ impl BorderlessApp
             self.needs_repaint = true;
         }
     }
-    
+
     fn save_config(&self)
     {
         if let Err(e) = self.config.save() {
             eprintln!("Failed to save config: {}", e);
         }
     }
-    
+
     fn handle_settings_window(&mut self, ctx: &egui::Context)
     {
         if !self.show_settings {
             return;
         }
-        
+
         egui::Window::new("Settings")
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .collapsible(false)
@@ -257,7 +255,10 @@ impl BorderlessApp
             .show(ctx, |ui| {
                 ui.set_min_width(300.0);
                 let mut run_on_startup = self.config.run_on_startup;
-                if ui.checkbox(&mut run_on_startup, "Run ihateborders when my computer starts").changed() {
+                if ui
+                    .checkbox(&mut run_on_startup, "Run ihateborders when my computer starts")
+                    .changed()
+                {
                     if run_on_startup {
                         if !is_elevated() {
                             self.config.run_on_startup = true;
@@ -272,10 +273,10 @@ impl BorderlessApp
                                 Ok(_) => {
                                     self.config.run_on_startup = true;
                                     self.save_config();
-                                }
+                                },
                                 Err(e) => {
                                     eprintln!("Failed to create startup task: {}", e);
-                                }
+                                },
                             }
                         }
                     } else {
@@ -289,8 +290,14 @@ impl BorderlessApp
                 }
                 ui.add_enabled_ui(self.config.run_on_startup, |ui| {
                     let mut startup_admin = self.config.startup_admin;
-                    
-                    if ui.checkbox(&mut startup_admin, "Enable startup with administrator privileges").changed() {
+
+                    if ui
+                        .checkbox(
+                            &mut startup_admin,
+                            "Enable startup with administrator privileges",
+                        )
+                        .changed()
+                    {
                         if startup_admin {
                             if !is_elevated() {
                                 self.config.startup_admin = true;
@@ -305,10 +312,10 @@ impl BorderlessApp
                                     Ok(_) => {
                                         self.config.startup_admin = true;
                                         self.save_config();
-                                    }
+                                    },
                                     Err(e) => {
                                         eprintln!("Failed to create scheduled task: {}", e);
-                                    }
+                                    },
                                 }
                             }
                         } else {
@@ -322,23 +329,23 @@ impl BorderlessApp
                                 if task_exists() {
                                     let _ = remove_scheduled_task();
                                 }
-                                
+
                                 match crate::startup::create_scheduled_task(false) {
                                     Ok(_) => {
                                         self.config.startup_admin = false;
                                         self.save_config();
-                                    }
+                                    },
                                     Err(e) => {
                                         eprintln!("Failed to recreate startup task: {}", e);
-                                    }
+                                    },
                                 }
                             }
                         }
                     }
                 });
-                
+
                 ui.add_space(10.0);
-                
+
                 if ui.button("Close").clicked() {
                     self.show_settings = false;
                 }
@@ -352,124 +359,141 @@ impl eframe::App for BorderlessApp
     {
         if let Some(pos) = ctx.input(|i| i.viewport().outer_rect).map(|r| r.min) {
             let should_update = self.last_refresh.elapsed().as_secs() >= 1;
-            
-            if should_update && self.config.window_position.as_ref().map_or(true, |saved_pos| {
-                (saved_pos.x - pos.x).abs() > 1.0 || (saved_pos.y - pos.y).abs() > 1.0
-            }) {
-                self.config.window_position = Some(crate::config::WindowPosition {
-                    x: pos.x,
-                    y: pos.y,
-                });
+
+            if should_update
+                && self.config.window_position.as_ref().map_or(true, |saved_pos| {
+                    (saved_pos.x - pos.x).abs() > 1.0 || (saved_pos.y - pos.y).abs() > 1.0
+                })
+            {
+                self.config.window_position =
+                    Some(crate::config::WindowPosition { x: pos.x, y: pos.y });
             }
-}
-        
+        }
+
         self.handle_refresh();
         self.handle_keyboard_input(ctx);
 
         self.icon_cache.cleanup_expired();
 
-    egui::CentralPanel::default().show(ctx, |ui| {
-        
-        ui::render_header(ui, self.window_manager.get_windows().len());
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui::render_header(ui, self.window_manager.get_windows().len());
 
-        ui::render_window_selector(
-            ui,
-            self.window_manager.get_windows(),
-            &mut self.selected_window,
-            &mut self.icon_cache,
-        );
+            ui::render_window_selector(
+                ui,
+                self.window_manager.get_windows(),
+                &mut self.selected_window,
+                &mut self.icon_cache,
+            );
 
-        ui::render_position_checkbox(ui, &mut self.resize_to_screen);
+            ui::render_position_checkbox(ui, &mut self.resize_to_screen);
 
-        if self.resize_to_screen {
-            ui::render_display_selector(ui, &self.displays, &mut self.selected_display);
-        }
+            if self.resize_to_screen {
+                ui::render_display_selector(ui, &self.displays, &mut self.selected_display);
+            }
 
-        let mut auto_changed = false;
-        let checkbox_enabled = self.selected_window.is_some();
-        
-        ui::render_auto_borderless_checkbox(
-            ui, 
-            &mut self.auto_borderless_enabled,
-            &mut auto_changed,
-            checkbox_enabled,
-        );
+            let mut auto_changed = false;
+            let checkbox_enabled = self.selected_window.is_some();
 
-        if auto_changed {
+            ui::render_auto_borderless_checkbox(
+                ui,
+                &mut self.auto_borderless_enabled,
+                &mut auto_changed,
+                checkbox_enabled,
+            );
+
+            if auto_changed {
+                if let Some(index) = self.selected_window {
+                    let windows = self.window_manager.get_windows();
+                    if let Some(window) = windows.get(index) {
+                        let process_name = window.process_name.clone();
+                        let hwnd = window.hwnd;
+                        let is_borderless = window.is_borderless;
+
+                        if self.auto_borderless_enabled {
+                            self.config.add_auto_borderless(process_name);
+                            if !is_borderless {
+                                let selected_display = if self.resize_to_screen {
+                                    self.selected_display.and_then(|idx| self.displays.get(idx))
+                                } else {
+                                    None
+                                };
+
+                                if self
+                                    .window_manager
+                                    .toggle_borderless(
+                                        hwnd,
+                                        self.resize_to_screen,
+                                        selected_display,
+                                    )
+                                    .is_ok()
+                                {
+                                    if let Some(w) = self.window_manager.get_window_mut(index) {
+                                        w.is_borderless = true;
+                                    }
+                                    self.applied_auto_borderless.insert(hwnd);
+                                    self.needs_repaint = true;
+                                }
+                            }
+                        } else {
+                            self.config.remove_auto_borderless(&process_name);
+                            if is_borderless {
+                                let selected_display = if self.resize_to_screen {
+                                    self.selected_display.and_then(|idx| self.displays.get(idx))
+                                } else {
+                                    None
+                                };
+
+                                if self
+                                    .window_manager
+                                    .toggle_borderless(
+                                        hwnd,
+                                        self.resize_to_screen,
+                                        selected_display,
+                                    )
+                                    .is_ok()
+                                {
+                                    if let Some(w) = self.window_manager.get_window_mut(index) {
+                                        w.is_borderless = false;
+                                    }
+                                    self.applied_auto_borderless.remove(&hwnd);
+                                    self.needs_repaint = true;
+                                }
+                            }
+                        }
+                        self.save_config();
+                    }
+                }
+            }
+
             if let Some(index) = self.selected_window {
                 let windows = self.window_manager.get_windows();
                 if let Some(window) = windows.get(index) {
-                    let process_name = window.process_name.clone();
-                    let hwnd = window.hwnd;
-                    let is_borderless = window.is_borderless;
-                    
-                    if self.auto_borderless_enabled {
-                        self.config.add_auto_borderless(process_name);
-                        if !is_borderless {
-                            let selected_display = if self.resize_to_screen {
-                                self.selected_display.and_then(|idx| self.displays.get(idx))
-                            } else {
-                                None
-                            };
-                            
-                            if self.window_manager.toggle_borderless(hwnd, self.resize_to_screen, selected_display).is_ok() {
-                                if let Some(w) = self.window_manager.get_window_mut(index) {
-                                    w.is_borderless = true;
-                                }
-                                self.applied_auto_borderless.insert(hwnd);
-                                self.needs_repaint = true;
-                            }
-                        }
-                    } else {
-                        self.config.remove_auto_borderless(&process_name);
-                        if is_borderless {
-                            let selected_display = if self.resize_to_screen {
-                                self.selected_display.and_then(|idx| self.displays.get(idx))
-                            } else {
-                                None
-                            };
-                            
-                            if self.window_manager.toggle_borderless(hwnd, self.resize_to_screen, selected_display).is_ok() {
-                                if let Some(w) = self.window_manager.get_window_mut(index) {
-                                    w.is_borderless = false;
-                                }
-                                self.applied_auto_borderless.remove(&hwnd);
-                                self.needs_repaint = true;
-                            }
-                        }
-                    }
-                    self.save_config();
+                    self.auto_borderless_enabled =
+                        self.config.is_auto_borderless(&window.process_name);
                 }
             }
-        }
 
-        if let Some(index) = self.selected_window {
-            let windows = self.window_manager.get_windows();
-            if let Some(window) = windows.get(index) {
-                self.auto_borderless_enabled = self.config.is_auto_borderless(&window.process_name);
+            let action_button_enabled =
+                self.selected_window.is_some() && !self.auto_borderless_enabled;
+
+            let clicked_index = ui::render_action_button(
+                ui,
+                self.window_manager.get_windows(),
+                self.selected_window,
+                action_button_enabled,
+            );
+
+            if let Some(window_index) = clicked_index {
+                self.handle_window_action(window_index);
             }
-        }
 
-        let action_button_enabled = self.selected_window.is_some() && !self.auto_borderless_enabled;
-        
-        let clicked_index = ui::render_action_button(
-            ui, 
-            self.window_manager.get_windows(),
-            self.selected_window,
-            action_button_enabled,
-        );
-
-        if let Some(window_index) = clicked_index {
-            self.handle_window_action(window_index);
-        }
-
-        ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-            ui.add_space(5.0);
-            if ui.button("⚙ Settings").clicked() {
-                self.show_settings = !self.show_settings;
-            }
+            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
+                ui.add_space(5.0);
+                if ui.button("⚙ Settings").clicked() {
+                    self.show_settings = !self.show_settings;
+                }
+            });
         });
-    });
 
         self.handle_settings_window(ctx);
 
@@ -480,7 +504,7 @@ impl eframe::App for BorderlessApp
             ctx.request_repaint_after(Duration::from_secs(5));
         }
     }
-    
+
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>)
     {
         let _ = self.config.save();

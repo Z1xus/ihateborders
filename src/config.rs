@@ -1,9 +1,6 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::{
-    fs,
-    path::PathBuf,
-};
+use std::{fs, path::PathBuf};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WindowPosition
@@ -74,7 +71,8 @@ impl Config
     pub fn get_config_path() -> Result<PathBuf>
     {
         let exe_path = std::env::current_exe()?;
-        let exe_dir = exe_path.parent()
+        let exe_dir = exe_path
+            .parent()
             .ok_or_else(|| anyhow::anyhow!("Failed to get executable directory"))?;
         Ok(exe_dir.join("ihateborders_config.json"))
     }

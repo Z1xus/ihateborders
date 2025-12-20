@@ -24,11 +24,11 @@ fn handle_elevated_task_creation(with_admin: bool) -> !
                 .spawn()
                 .expect("Failed to relaunch app");
             std::process::exit(0);
-        }
+        },
         Err(e) => {
             eprintln!("Failed to create scheduled task: {}", e);
             std::process::exit(1);
-        }
+        },
     }
 }
 
@@ -37,15 +37,15 @@ fn main() -> Result<(), eframe::Error>
     let args: Vec<String> = std::env::args().collect();
 
     let mut open_settings = false;
-    
+
     if args.len() > 1 && args[1] == "--install-admin-task" {
         handle_elevated_task_creation(true);
     }
-    
+
     if args.len() > 1 && args[1] == "--create-startup-task" {
         handle_elevated_task_creation(false);
     }
-    
+
     if args.len() > 1 && args[1] == "--open-settings" {
         open_settings = true;
     }
