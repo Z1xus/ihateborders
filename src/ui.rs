@@ -224,6 +224,33 @@ pub fn render_position_checkbox(ui: &mut egui::Ui, resize_to_screen: &mut bool)
     });
 }
 
+pub fn render_auto_borderless_checkbox(
+    ui: &mut egui::Ui,
+    auto_borderless: &mut bool,
+    changed: &mut bool,
+    enabled: bool,
+)
+{
+    ui.add_space(5.0);
+
+    ui.horizontal(|ui| {
+        ui.add_space(5.0);
+
+        ui.add_enabled_ui(enabled, |ui| {
+            let response = ui.checkbox(auto_borderless, "");
+            if response.changed() {
+                *changed = true;
+            }
+
+            ui.label(
+                RichText::new("Automatically make borderless")
+                    .font(FontId::proportional(12.0))
+                    .color(if enabled { Color32::from_gray(180) } else { Color32::from_gray(120) }),
+            );
+        });
+    });
+}
+
 pub fn render_display_selector(
     ui: &mut egui::Ui,
     displays: &[DisplayInfo],
@@ -276,13 +303,13 @@ pub fn render_action_button(
     ui: &mut egui::Ui,
     windows: &[WindowInfo],
     selected_window: Option<usize>,
+    enabled: bool,
 ) -> Option<usize>
 {
     ui.add_space(15.0);
 
     let mut clicked_window = None;
 
-    let button_enabled = selected_window.is_some();
     let button_text = if let Some(index) = selected_window {
         if let Some(window) = windows.get(index) {
             if window.is_borderless { "Restore Borders" } else { "Make Borderless" }
@@ -294,15 +321,15 @@ pub fn render_action_button(
     };
 
     ui.with_layout(Layout::top_down(Align::Center), |ui| {
-        ui.add_enabled_ui(button_enabled, |ui| {
+        ui.add_enabled_ui(enabled, |ui| {
             let button = egui::Button::new(
                 RichText::new(button_text).font(FontId::proportional(14.0)).color(
-                    if button_enabled { Color32::from_gray(255) } else { Color32::from_gray(120) },
+                    if enabled { Color32::from_gray(255) } else { Color32::from_gray(120) },
                 ),
             )
-            .min_size(egui::vec2(180.0, 35.0));
+                .min_size(egui::vec2(180.0, 35.0));
 
-            if ui.add(button).clicked() && button_enabled {
+            if ui.add(button).clicked() && enabled {
                 clicked_window = selected_window;
             }
         });
