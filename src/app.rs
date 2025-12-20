@@ -351,7 +351,9 @@ impl eframe::App for BorderlessApp
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame)
     {
         if let Some(pos) = ctx.input(|i| i.viewport().outer_rect).map(|r| r.min) {
-            if self.config.window_position.as_ref().map_or(true, |saved_pos| {
+            let should_update = self.last_refresh.elapsed().as_secs() >= 1;
+            
+            if should_update && self.config.window_position.as_ref().map_or(true, |saved_pos| {
                 (saved_pos.x - pos.x).abs() > 1.0 || (saved_pos.y - pos.y).abs() > 1.0
             }) {
                 self.config.window_position = Some(crate::config::WindowPosition {
@@ -359,7 +361,7 @@ impl eframe::App for BorderlessApp
                     y: pos.y,
                 });
             }
-        }
+}
         
         self.handle_refresh();
         self.handle_keyboard_input(ctx);
@@ -395,47 +397,49 @@ impl eframe::App for BorderlessApp
 
         if auto_changed {
             if let Some(index) = self.selected_window {
-                let current_windows = self.window_manager.get_windows();
-                let window = &current_windows[index];
-                let process_name = window.process_name.clone();
-                let hwnd = window.hwnd;
-                let currently_borderless = window.is_borderless;
-
-                let should_toggle = (self.auto_borderless_enabled && !currently_borderless)
-                    || (!self.auto_borderless_enabled && currently_borderless);
-
-                if should_toggle {
-                    let selected_display = if self.resize_to_screen {
-                        self.selected_display.and_then(|idx| self.displays.get(idx))
-                    } else {
-                        None
-                    };
-
-                    if self.window_manager
-                        .toggle_borderless(hwnd, self.resize_to_screen, selected_display)
-                        .is_ok()
-                    {
-                        if let Some(w) = self.window_manager.get_window_mut(index) {
-                            w.is_borderless = !w.is_borderless;
+                let windows = self.window_manager.get_windows();
+                if let Some(window) = windows.get(index) {
+                    let process_name = window.process_name.clone();
+                    let hwnd = window.hwnd;
+                    let is_borderless = window.is_borderless;
+                    
+                    if self.auto_borderless_enabled {
+                        self.config.add_auto_borderless(process_name);
+                        if !is_borderless {
+                            let selected_display = if self.resize_to_screen {
+                                self.selected_display.and_then(|idx| self.displays.get(idx))
+                            } else {
+                                None
+                            };
+                            
+                            if self.window_manager.toggle_borderless(hwnd, self.resize_to_screen, selected_display).is_ok() {
+                                if let Some(w) = self.window_manager.get_window_mut(index) {
+                                    w.is_borderless = true;
+                                }
+                                self.applied_auto_borderless.insert(hwnd);
+                                self.needs_repaint = true;
+                            }
                         }
-                        self.needs_repaint = true;
-                        self.refresh_receiver = None;
-                        self.start_async_refresh();
+                    } else {
+                        self.config.remove_auto_borderless(&process_name);
+                        if is_borderless {
+                            let selected_display = if self.resize_to_screen {
+                                self.selected_display.and_then(|idx| self.displays.get(idx))
+                            } else {
+                                None
+                            };
+                            
+                            if self.window_manager.toggle_borderless(hwnd, self.resize_to_screen, selected_display).is_ok() {
+                                if let Some(w) = self.window_manager.get_window_mut(index) {
+                                    w.is_borderless = false;
+                                }
+                                self.applied_auto_borderless.remove(&hwnd);
+                                self.needs_repaint = true;
+                            }
+                        }
                     }
+                    self.save_config();
                 }
-
-                if self.auto_borderless_enabled {
-                    self.config.add_auto_borderless(process_name);
-                    if !currently_borderless && should_toggle {
-                        self.applied_auto_borderless.insert(hwnd);
-                    }
-                } else {
-                    self.config.remove_auto_borderless(&process_name);
-                    if currently_borderless && should_toggle {
-                        self.applied_auto_borderless.remove(&hwnd);
-                    }
-                }
-                self.save_config();
             }
         }
 

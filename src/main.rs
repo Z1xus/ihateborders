@@ -37,32 +37,15 @@ fn main() -> Result<(), eframe::Error>
     let args: Vec<String> = std::env::args().collect();
 
     let mut open_settings = false;
+    
     if args.len() > 1 && args[1] == "--install-admin-task" {
         handle_elevated_task_creation(true);
     }
+    
     if args.len() > 1 && args[1] == "--create-startup-task" {
         handle_elevated_task_creation(false);
     }
-    if args.len() > 1 && args[1] == "--create-startup-task" {
-        if !is_elevated() {
-            eprintln!("Error: --create-startup-task requires administrator privileges");
-            std::process::exit(1);
-        }
-
-        match create_scheduled_task(false) {
-            Ok(_) => {
-                let exe_path = std::env::current_exe().expect("Failed to get exe path");
-                std::process::Command::new(exe_path)
-                    .spawn()
-                    .expect("Failed to relaunch app");
-                std::process::exit(0);
-            }
-            Err(e) => {
-                eprintln!("Failed to create scheduled task: {}", e);
-                std::process::exit(1);
-            }
-        }
-    }
+    
     if args.len() > 1 && args[1] == "--open-settings" {
         open_settings = true;
     }
