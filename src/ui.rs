@@ -323,11 +323,13 @@ pub fn render_action_button(
     ui.with_layout(Layout::top_down(Align::Center), |ui| {
         ui.add_enabled_ui(enabled, |ui| {
             let button = egui::Button::new(
-                RichText::new(button_text).font(FontId::proportional(14.0)).color(
-                    if enabled { Color32::from_gray(255) } else { Color32::from_gray(120) },
-                ),
+                RichText::new(button_text).font(FontId::proportional(14.0)).color(if enabled {
+                    Color32::from_gray(255)
+                } else {
+                    Color32::from_gray(120)
+                }),
             )
-                .min_size(egui::vec2(180.0, 35.0));
+            .min_size(egui::vec2(180.0, 35.0));
 
             if ui.add(button).clicked() && enabled {
                 clicked_window = selected_window;

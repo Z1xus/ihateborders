@@ -1,10 +1,11 @@
 use anyhow::Result;
-use std::os::windows::process::CommandExt;
-use std::process::Command;
+use std::{os::windows::process::CommandExt, process::Command};
 use windows::Win32::{
     Foundation::HWND,
-    UI::Shell::{IsUserAnAdmin, ShellExecuteW},
-    UI::WindowsAndMessaging::SW_SHOWNORMAL,
+    UI::{
+        Shell::{IsUserAnAdmin, ShellExecuteW},
+        WindowsAndMessaging::SW_SHOWNORMAL,
+    },
 };
 
 const CREATE_NO_WINDOW: u32 = 0x08000000;
@@ -49,22 +50,14 @@ pub fn create_scheduled_task(with_admin: bool) -> Result<()>
     let exe_path_str = exe_path.to_string_lossy();
     let tr_arg = format!("\"{}\"", exe_path_str);
 
-    let mut args = vec![
-        "/Create",
-        "/TN", "ihateborders_startup",
-        "/TR", &tr_arg,
-        "/SC", "ONLOGON",
-        "/F",
-    ];
+    let mut args =
+        vec!["/Create", "/TN", "ihateborders_startup", "/TR", &tr_arg, "/SC", "ONLOGON", "/F"];
     let rl_highest = "HIGHEST";
     if with_admin {
         args.push("/RL");
         args.push(rl_highest);
     }
-    let output = Command::new("schtasks")
-        .args(&args)
-        .creation_flags(CREATE_NO_WINDOW)
-        .output()?;
+    let output = Command::new("schtasks").args(&args).creation_flags(CREATE_NO_WINDOW).output()?;
 
     if !output.status.success() {
         let error = String::from_utf8_lossy(&output.stderr);
@@ -77,11 +70,7 @@ pub fn create_scheduled_task(with_admin: bool) -> Result<()>
 pub fn remove_scheduled_task() -> Result<()>
 {
     let output = Command::new("schtasks")
-        .args(&[
-            "/Delete",
-            "/TN", "ihateborders_startup",
-            "/F",
-        ])
+        .args(&["/Delete", "/TN", "ihateborders_startup", "/F"])
         .creation_flags(CREATE_NO_WINDOW)
         .output()?;
 
@@ -98,10 +87,7 @@ pub fn remove_scheduled_task() -> Result<()>
 pub fn task_exists() -> bool
 {
     let output = Command::new("schtasks")
-        .args(&[
-            "/Query",
-            "/TN", "ihateborders_startup",
-        ])
+        .args(&["/Query", "/TN", "ihateborders_startup"])
         .creation_flags(CREATE_NO_WINDOW)
         .output();
 
