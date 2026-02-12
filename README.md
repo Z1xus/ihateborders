@@ -9,12 +9,21 @@ A lightweight Windows utility that allows you to toggle window borders on/off fo
 ### Why ihateborders?
 This project was created as a free and open-source alternative to [Borderless Gaming](https://github.com/Codeusa/Borderless-Gaming) by Codeusa, which became a paid application on Steam and had all free release binaries removed from GitHub.
 
+### Installation
+
+#### Portable
+Download the latest release from the [Releases](https://github.com/z1xus/ihateborders/releases) page.
+
+#### Scoop
+```bash
+scoop install https://raw.githubusercontent.com/z1xus/ihateborders/main/scoop/ihateborders.json
+```
+
 ### Usage
-1. Download the latest release from the [Releases](https://github.com/z1xus/ihateborders/releases) page.
-2. Run the executable.
-3. Select a window from the dropdown list.
-4. Optionally check "Resize to screen" to make the window fullscreen when removing borders.
-5. Click "Make Borderless" or "Restore Borders" to toggle the window's border state.
+1. Run the executable.
+2. Select a window from the dropdown list.
+3. Optionally check "Resize to screen" to make the window fullscreen when removing borders.
+4. Click "Make Borderless" or "Restore Borders" to toggle the window's border state.
 
 ### Interface
 - **[B]** indicates a borderless window
