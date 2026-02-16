@@ -13,9 +13,9 @@ use windows::Win32::{
     UI::WindowsAndMessaging::{
         DrawIconEx, EnumWindows, GCLP_HICON, GWL_STYLE, GetClassLongPtrW, GetSystemMetrics,
         GetWindowLongW, GetWindowTextW, GetWindowThreadProcessId, HWND_TOP, ICON_SMALL,
-        IsWindowVisible, SM_CXSCREEN, SM_CYSCREEN, SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOSIZE,
-        SWP_NOZORDER, SendMessageW, SetWindowLongW, SetWindowPos, WM_GETICON, WS_BORDER,
-        WS_CAPTION, WS_DLGFRAME, WS_THICKFRAME,
+        IsWindowVisible, SM_CXSCREEN, SM_CYSCREEN, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE,
+        SWP_NOSIZE, SWP_NOZORDER, SendMessageW, SetWindowLongW, SetWindowPos, WM_GETICON,
+        WS_BORDER, WS_CAPTION, WS_DLGFRAME, WS_THICKFRAME,
     },
 };
 
@@ -197,7 +197,7 @@ impl WindowManager
                     y,
                     width,
                     height,
-                    SWP_FRAMECHANGED | SWP_NOZORDER,
+                    SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOACTIVATE,
                 )?;
             } else {
                 SetWindowPos(
@@ -207,12 +207,17 @@ impl WindowManager
                     0,
                     0,
                     0,
-                    SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER,
+                    SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE,
                 )?;
             }
         }
 
         Ok(())
+    }
+
+    pub fn get_window_mut(&mut self, index: usize) -> Option<&mut WindowInfo>
+    {
+        self.windows.get_mut(index)
     }
 
     pub fn is_refresh_in_progress(&self) -> bool

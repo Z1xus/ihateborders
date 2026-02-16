@@ -1,6 +1,6 @@
 [package]
 name = "ihateborders"
-version = "1.1.1"
+version = "1.2.0"
 edition = "2024"
 
 [dependencies]
@@ -20,6 +20,8 @@ windows = { version = "0.61", features = [
 ] }
 anyhow = { version = "1.0", default-features = false }
 image = { version = "0.25", default-features = false, features = ["ico", "png"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 [build-dependencies]
 embed-resource = { version = "3.0", default-features = false }
