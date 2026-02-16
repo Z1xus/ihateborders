@@ -1,0 +1,69 @@
+name: Update Scoop Manifest
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  update-scoop-manifest:
+    if: startsWith(github.event.release.tag_name, 'v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Build release metadata
+        id: meta
+        shell: bash
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "url=https://github.com/${REPOSITORY}/releases/download/${TAG}/ihateborders.exe" >> "$GITHUB_OUTPUT"
+
+      - name: Determine SHA256
+        id: checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL "${{ steps.meta.outputs.url }}" -o ihateborders.exe
+          hash="$(sha256sum ihateborders.exe | awk '{ print tolower($1) }')"
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+
+      - name: Update Scoop manifest
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          URL: ${{ steps.meta.outputs.url }}
+          HASH: ${{ steps.checksum.outputs.hash }}
+        shell: bash
+        run: |
+          tmp_file="$(mktemp)"
+          jq --arg v "$VERSION" --arg u "$URL" --arg h "$HASH" \
+             '.version = $v | .architecture."64bit".url = $u | .architecture."64bit".hash = $h' \
+             scoop/ihateborders.json > "$tmp_file"
+          mv "$tmp_file" scoop/ihateborders.json
+
+      - name: Commit and push changes
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add scoop/ihateborders.json
+
+          if git diff --cached --quiet; then
+            echo "No manifest changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Update Scoop manifest for ${TAG}"
+          git push origin main
