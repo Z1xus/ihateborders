@@ -1,3 +1,5 @@
+
+
 ## ihateborders <img src="assets/icon.ico" alt="ihateborders icon" width="48" height="48" align="left">
 ![Windows Only](https://img.shields.io/badge/platform-Windows-blue?logo=windows)
 [![Downloads](https://img.shields.io/github/downloads/z1xus/ihateborders/total)](https://github.com/z1xus/ihateborders/releases)
@@ -12,7 +14,7 @@ This project was created as a free and open-source alternative to [Borderless Ga
 ### Installation
 
 #### Portable
-Download the latest release from the [Releases](https://github.com/z1xus/ihateborders/releases) page.
+Download the latest release from the [Releases](https://github.com/z1xus/ihateborders/releases) page. Verify the `SHA256SUMS.txt` file to ensure the binary's integrity.
 
 #### Scoop
 ```bash
