@@ -1,27 +1,27 @@
 {
-    "version": "1.1.1",
-    "description": "A lightweight Windows utility for making any window borderless.",
-    "homepage": "https://github.com/Z1xus/ihateborders",
-    "license": "GPL-3.0",
-    "architecture": {
-        "64bit": {
-            "url": "https://github.com/Z1xus/ihateborders/releases/download/v1.1.1/ihateborders.exe",
-            "hash": "2f5f79b2ccf0bcde18d9f019658ca6518adeff35372ff338f030df5b35436885"
-        }
-    },
-    "bin": "ihateborders.exe",
-    "shortcuts": [
-        [
-            "ihateborders.exe",
-            "ihateborders"
-        ]
-    ],
-    "checkver": "github",
-    "autoupdate": {
-        "architecture": {
-            "64bit": {
-                "url": "https://github.com/Z1xus/ihateborders/releases/download/v$version/ihateborders.exe"
-            }
-        }
+  "version": "2.0.0",
+  "description": "A lightweight Windows utility for making any window borderless.",
+  "homepage": "https://github.com/Z1xus/ihateborders",
+  "license": "GPL-3.0",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/Z1xus/ihateborders/releases/download/v2.0.0/ihateborders.exe",
+      "hash": "3256da8d1e7c0be69c0e1e5bc1e5ffd41cbf4ae36ad7f0401b7c5ae9b4dfd7b1"
     }
+  },
+  "bin": "ihateborders.exe",
+  "shortcuts": [
+    [
+      "ihateborders.exe",
+      "ihateborders"
+    ]
+  ],
+  "checkver": "github",
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/Z1xus/ihateborders/releases/download/v$version/ihateborders.exe"
+      }
+    }
+  }
 }
