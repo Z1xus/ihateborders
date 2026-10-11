@@ -1,0 +1,19 @@
+name: Bug report
+description: Something doesn't work
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what you got. The name of the app or the game and a screenshot help a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: debug
+    attributes:
+      label: Debug info
+      description: Select the window that has the problem, then click the version at the bottom right of the settings (it says "Copied"), then paste here.
+      render: text
+    validations:
+      required: true
