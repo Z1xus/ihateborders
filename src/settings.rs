@@ -1,14 +1,18 @@
+use std::time::{Duration, Instant};
+
 use eframe::egui::{
-    Align, Button, CentralPanel, ComboBox, Context, Event, Image, Key, Label, Layout, RichText,
-    ScrollArea, Sense, Ui, Vec2, ViewportBuilder, ViewportId, vec2,
+    Align, Button, CentralPanel, ComboBox, Context, CursorIcon, Event, Image, Key, Label, Layout,
+    Panel, RichText, ScrollArea, Sense, Ui, Vec2, ViewportBuilder, ViewportId, vec2,
 };
 
 use crate::config::Match;
 use crate::state::State;
-use crate::theme;
 use crate::view::name;
+use crate::{system, theme};
 
 const ICON: Vec2 = vec2(20.0, 20.0);
+const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), " (", env!("COMMIT"), ")");
+const COPIED: Duration = Duration::from_millis(1500);
 
 fn label(by: Match) -> &'static str {
     match by {
@@ -24,6 +28,7 @@ pub fn show(context: &Context, state: &mut State) {
         .with_inner_size([420.0, 360.0])
         .with_resizable(false);
     context.show_viewport_immediate(ViewportId::from_hash_of("settings"), window, |ui, _| {
+        Panel::bottom("version").show(ui, |ui| version(ui, state));
         CentralPanel::default().show(ui, |ui| {
             ui.weak("General");
             let mut startup = state.startup;
@@ -97,6 +102,84 @@ pub fn show(context: &Context, state: &mut State) {
             state.bind();
         }
     });
+}
+
+fn version(ui: &mut Ui, state: &mut State) {
+    ui.horizontal(|ui| {
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            let copied = state.copied.is_some_and(|copied| copied.elapsed() < COPIED);
+            let text = if copied { "Copied" } else { VERSION };
+            let version = Label::new(RichText::new(text).small().weak());
+            let version = ui.add(version.selectable(false).sense(Sense::click()));
+            let version = version.on_hover_cursor(CursorIcon::PointingHand);
+            if version.on_hover_text("Copy debug info").clicked() {
+                ui.ctx().copy_text(details(ui.ctx(), state));
+                state.copied = Some(Instant::now());
+            }
+            if copied {
+                ui.ctx().request_repaint_after(COPIED);
+            }
+        });
+    });
+}
+
+// no path or window title: they can name a person or a file
+fn details(context: &Context, state: &State) -> String {
+    let yes = |on: bool| if on { "yes" } else { "no" };
+    let displays = state.displays.iter().map(|display| {
+        let rect = &display.rect;
+        let (width, height) = (rect.width, rect.height);
+        let (name, dpi) = (&display.name, display.dpi);
+        format!("{name} {width}x{height} at {},{} dpi {dpi}", rect.x, rect.y)
+    });
+    let config = &state.config;
+    let rules = |by: Match| config.apps.iter().filter(|rule| rule.by == by).count();
+    let selected = state
+        .windows
+        .iter()
+        .find(|window| state.selected == Some(window.id));
+    let window = selected.map_or("none".into(), |window| {
+        let before = state.before.get(&window.id);
+        let before = before.map(|before| format!("\nwindow before: {}", before.inspect()));
+        format!(
+            "{} on {}, borderless {}, always borderless {}\nwindow now: {}{}",
+            name(&window.path),
+            window.display,
+            yes(window.borderless),
+            yes(state.rule(window).is_some()),
+            system::inspect(window.id),
+            before.unwrap_or_default()
+        )
+    });
+    let notes: Vec<&str> = state.notes.values().copied().chain(state.error).collect();
+    [
+        format!("ihateborders: {VERSION}"),
+        format!("windows: {}", system::version()),
+        format!(
+            "administrator: {}",
+            system::administrator(std::process::id())
+        ),
+        format!("displays: {}", displays.collect::<Vec<_>>().join(", ")),
+        format!("scale: {}", context.pixels_per_point()),
+        format!("resize to screen: {}", yes(config.fit.resize)),
+        format!(
+            "display: {}",
+            config.fit.display.as_deref().unwrap_or("current")
+        ),
+        format!("start with windows: {}", yes(state.startup)),
+        format!("tray: {}", yes(config.tray)),
+        format!("shortcut: {}", config.shortcut),
+        format!("shortcut registered: {}", yes(state.bound)),
+        format!(
+            "always borderless: {} by name, {} by path, {} by title",
+            rules(Match::Name),
+            rules(Match::Path),
+            rules(Match::Title)
+        ),
+        format!("messages: {}", notes.join(", ")),
+        format!("window: {window}"),
+    ]
+    .join("\n")
 }
 
 fn shortcut(ui: &mut Ui, state: &mut State) {

@@ -24,7 +24,8 @@ pub struct State {
     pub shortcut: Option<Shortcut>,
     pub bound: bool,
     pub recording: bool,
-    before: HashMap<isize, Before>,
+    pub copied: Option<Instant>,
+    pub before: HashMap<isize, Before>,
     icons: HashMap<PathBuf, Option<TextureHandle>>,
     polled: Option<Instant>,
 }
@@ -37,6 +38,7 @@ impl State {
             shortcut: Shortcut::new(keys),
             bound: true,
             recording: false,
+            copied: None,
             error: config.is_err().then_some("Couldn't read the settings"),
             notes: HashMap::new(),
             fonts: Vec::new(),

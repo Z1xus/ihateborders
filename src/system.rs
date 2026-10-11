@@ -18,26 +18,29 @@ use windows::Win32::Graphics::Gdi::{
     GetDIBits, GetMonitorInfoW, GetObjectW, HDC, HMONITOR, MONITOR_DEFAULTTONEAREST,
     MONITORINFOEXW, MonitorFromWindow, ReleaseDC,
 };
+use windows::Win32::Security::{GetTokenInformation, TOKEN_ELEVATION, TOKEN_QUERY, TokenElevation};
 use windows::Win32::Storage::FileSystem::{FILE_FLAGS_AND_ATTRIBUTES, PIPE_ACCESS_INBOUND};
 use windows::Win32::System::Pipes::{
     ConnectNamedPipe, CreateNamedPipeW, PIPE_TYPE_BYTE, PIPE_UNLIMITED_INSTANCES, PIPE_WAIT,
 };
 use windows::Win32::System::Threading::{
-    OpenProcess, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW,
+    OpenProcess, OpenProcessToken, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
+    QueryFullProcessImageNameW,
 };
 use windows::Win32::UI::Accessibility::{HWINEVENTHOOK, SetWinEventHook};
+use windows::Win32::UI::HiDpi::{GetDpiForMonitor, GetDpiForWindow, MDT_EFFECTIVE_DPI};
 use windows::Win32::UI::Shell::{SHFILEINFOW, SHGFI_ICON, SHGFI_LARGEICON, SHGetFileInfoW};
 use windows::Win32::UI::WindowsAndMessaging::{
     DestroyIcon, EVENT_OBJECT_DESTROY, EVENT_OBJECT_HIDE, EVENT_OBJECT_NAMECHANGE, EnumWindows,
-    GA_ROOT, GW_OWNER, GWL_EXSTYLE, GWL_STYLE, GetAncestor, GetClientRect, GetForegroundWindow,
-    GetIconInfo, GetWindow, GetWindowLongPtrW, GetWindowRect, GetWindowTextW,
+    GA_ROOT, GW_OWNER, GWL_EXSTYLE, GWL_STYLE, GetAncestor, GetClassNameW, GetClientRect,
+    GetForegroundWindow, GetIconInfo, GetWindow, GetWindowLongPtrW, GetWindowRect, GetWindowTextW,
     GetWindowThreadProcessId, ICONINFO, IsWindowVisible, OBJID_WINDOW, SWP_FRAMECHANGED,
     SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SetWindowLongPtrW, SetWindowPos,
     WINEVENT_OUTOFCONTEXT, WS_CAPTION, WS_EX_CLIENTEDGE, WS_EX_DLGMODALFRAME, WS_EX_STATICEDGE,
     WS_EX_TOOLWINDOW, WS_EX_WINDOWEDGE, WS_THICKFRAME,
 };
 use windows::core::{BOOL, HSTRING, PWSTR};
-use windows_registry::CURRENT_USER;
+use windows_registry::{CURRENT_USER, LOCAL_MACHINE};
 
 #[derive(Clone)]
 pub struct Window {
@@ -48,7 +51,7 @@ pub struct Window {
     pub borderless: bool,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct Rect {
     pub x: i32,
     pub y: i32,
@@ -59,6 +62,7 @@ pub struct Rect {
 pub struct Display {
     pub name: String,
     pub rect: Rect,
+    pub dpi: u32,
 }
 
 pub struct Icon {
@@ -175,7 +179,11 @@ pub fn displays() -> Vec<Display> {
 fn display(monitor: HMONITOR) -> Option<Display> {
     let mut info = MONITORINFOEXW::default();
     info.monitorInfo.cbSize = size_of::<MONITORINFOEXW>() as u32;
-    let found = unsafe { GetMonitorInfoW(monitor, (&raw mut info).cast()) };
+    let (mut dpi, mut vertical) = (0, 0);
+    let found = unsafe {
+        let _ = GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &mut dpi, &mut vertical);
+        GetMonitorInfoW(monitor, (&raw mut info).cast())
+    };
     let RECT {
         left,
         top,
@@ -191,6 +199,7 @@ fn display(monitor: HMONITOR) -> Option<Display> {
             width: right - left,
             height: bottom - top,
         },
+        dpi,
     })
 }
 
@@ -354,6 +363,87 @@ pub fn set_startup(enabled: bool) -> Result<()> {
         _ => run.remove_value("ihateborders")?,
     }
     Ok(())
+}
+
+pub fn version() -> String {
+    let Ok(windows) = LOCAL_MACHINE.open(r"SOFTWARE\Microsoft\Windows NT\CurrentVersion") else {
+        return String::new();
+    };
+    let build = windows.get_string("CurrentBuild").unwrap_or_default();
+    let patch = windows.get_u32("UBR").unwrap_or_default();
+    format!("10.0.{build}.{patch}")
+}
+
+fn state(style: isize, extended: isize, rect: Rect) -> String {
+    let Rect {
+        x,
+        y,
+        width,
+        height,
+    } = rect;
+    format!("style {style:#x}, extended {extended:#x}, {width}x{height} at {x},{y}")
+}
+
+impl Before {
+    pub fn inspect(&self) -> String {
+        state(self.style, self.extended, self.rect)
+    }
+}
+
+pub fn inspect(window: isize) -> String {
+    let window = handle(window);
+    let mut class = [0u16; 256];
+    let mut inside = RECT::default();
+    let mut process = 0;
+    let (length, style, extended, dpi) = unsafe {
+        let _ = GetClientRect(window, &mut inside);
+        GetWindowThreadProcessId(window, Some(&mut process));
+        (
+            GetClassNameW(window, &mut class) as usize,
+            GetWindowLongPtrW(window, GWL_STYLE),
+            GetWindowLongPtrW(window, GWL_EXSTYLE),
+            GetDpiForWindow(window),
+        )
+    };
+    format!(
+        "class {}, {}, inside {}x{}, dpi {dpi}, administrator {}",
+        String::from_utf16_lossy(&class[..length]),
+        state(style, extended, outside(window).unwrap_or_default()),
+        inside.right,
+        inside.bottom,
+        administrator(process)
+    )
+}
+
+fn elevated(process: u32) -> Option<bool> {
+    let mut token = HANDLE::default();
+    let mut elevation = TOKEN_ELEVATION::default();
+    let mut length = 0;
+    unsafe {
+        let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, process).ok()?;
+        let opened = OpenProcessToken(process, TOKEN_QUERY, &mut token);
+        let _ = CloseHandle(process);
+        opened.ok()?;
+        let read = GetTokenInformation(
+            token,
+            TokenElevation,
+            Some((&raw mut elevation).cast()),
+            size_of::<TOKEN_ELEVATION>() as u32,
+            &mut length,
+        );
+        let _ = CloseHandle(token);
+        read.ok()?;
+    }
+    Some(elevation.TokenIsElevated != 0)
+}
+
+// windows does not let an app read this from an app with more rights
+pub fn administrator(process: u32) -> &'static str {
+    match elevated(process) {
+        Some(true) => "yes",
+        Some(false) => "no",
+        None => "unknown",
+    }
 }
 
 fn pipe() -> String {
