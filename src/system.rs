@@ -1,19 +1,27 @@
 use std::env;
 use std::ffi::{OsString, c_void};
+use std::fs::{File, OpenOptions};
+use std::io::{ErrorKind, Read, Write};
 use std::os::windows::ffi::OsStringExt;
+use std::os::windows::io::{AsRawHandle, FromRawHandle};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread;
+use std::time::Duration;
 
 use anyhow::Result;
-use windows::Win32::Foundation::{CloseHandle, HWND, LPARAM, RECT};
+use windows::Win32::Foundation::{CloseHandle, HANDLE, HWND, LPARAM, RECT};
 use windows::Win32::Graphics::Dwm::{DWMWA_CLOAKED, DwmGetWindowAttribute};
 use windows::Win32::Graphics::Gdi::{
     BITMAP, BITMAPINFO, BITMAPINFOHEADER, DIB_RGB_COLORS, DeleteObject, EnumDisplayMonitors, GetDC,
     GetDIBits, GetMonitorInfoW, GetObjectW, HDC, HMONITOR, MONITOR_DEFAULTTONEAREST,
     MONITORINFOEXW, MonitorFromWindow, ReleaseDC,
 };
-use windows::Win32::Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES;
+use windows::Win32::Storage::FileSystem::{FILE_FLAGS_AND_ATTRIBUTES, PIPE_ACCESS_INBOUND};
+use windows::Win32::System::Pipes::{
+    ConnectNamedPipe, CreateNamedPipeW, PIPE_TYPE_BYTE, PIPE_UNLIMITED_INSTANCES, PIPE_WAIT,
+};
 use windows::Win32::System::Threading::{
     OpenProcess, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW,
 };
@@ -341,6 +349,61 @@ pub fn set_startup(enabled: bool) -> Result<()> {
         _ => run.remove_value("ihateborders")?,
     }
     Ok(())
+}
+
+fn pipe() -> String {
+    let user = env::var("USERNAME").unwrap_or_default();
+    format!(r"\\.\pipe\ihateborders-{user}")
+}
+
+fn serve() -> Option<File> {
+    let name = HSTRING::from(pipe());
+    let mode = PIPE_TYPE_BYTE | PIPE_WAIT;
+    let pipe = unsafe {
+        CreateNamedPipeW(
+            &name,
+            PIPE_ACCESS_INBOUND,
+            mode,
+            PIPE_UNLIMITED_INSTANCES,
+            0,
+            4096,
+            0,
+            None,
+        )
+    };
+    (!pipe.is_invalid()).then(|| unsafe { File::from_raw_handle(pipe.0) })
+}
+
+// a second start sends its arguments to the app that runs, and tells if there is one
+pub fn send(message: &str) -> bool {
+    for _ in 0..20 {
+        match OpenOptions::new().write(true).open(pipe()) {
+            Ok(mut pipe) => return pipe.write_all(message.as_bytes()).is_ok(),
+            Err(error) if error.kind() == ErrorKind::NotFound => return false,
+            // all ends of the pipe are in use for a moment
+            Err(_) => thread::sleep(Duration::from_millis(50)),
+        }
+    }
+    false
+}
+
+pub fn listen(received: impl Fn(String) + Send + 'static) {
+    let Some(mut pipe) = serve() else {
+        return;
+    };
+    thread::spawn(move || {
+        loop {
+            let _ = unsafe { ConnectNamedPipe(HANDLE(pipe.as_raw_handle()), None) };
+            // the next end is there before this one closes, so a sender always finds the pipe
+            let Some(next) = serve() else {
+                return;
+            };
+            let mut message = String::new();
+            let _ = pipe.read_to_string(&mut message);
+            pipe = next;
+            received(message);
+        }
+    });
 }
 
 unsafe extern "system" fn on_event(

@@ -65,6 +65,9 @@ impl eframe::App for App {
 
 pub fn run() -> eframe::Result {
     let hidden = std::env::args().any(|argument| argument == "--hidden");
+    if system::send("") {
+        return Ok(());
+    }
     let icon = image::load_from_memory(include_bytes!("../assets/icon.ico"))
         .expect("the icon in the app is a valid image")
         .into_rgba8();
@@ -89,8 +92,12 @@ pub fn run() -> eframe::Result {
             let context = creation.egui_ctx.clone();
             let wake = move || context.request_repaint();
             let (sender, asked) = channel();
-            let tray = tray::tray(&icon, sender, wake.clone()).ok();
-            system::watch(wake);
+            let tray = tray::tray(&icon, sender.clone(), wake.clone()).ok();
+            system::watch(wake.clone());
+            system::listen(move |_| {
+                let _ = sender.send(Asked::Open);
+                wake();
+            });
             Ok(Box::new(App {
                 state: State::new(),
                 hidden: hidden && tray.is_some(),
