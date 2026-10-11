@@ -921,7 +921,7 @@ checksum = "e17592d60ebacc7d5e169f4663c5f84f9161cc90328abcfe8456f41e4dfcb284"
 
 [[package]]
 name = "ihateborders"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "anyhow",
  "eframe",
