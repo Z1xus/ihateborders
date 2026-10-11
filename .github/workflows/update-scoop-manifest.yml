@@ -1,15 +1,17 @@
 name: Update Scoop Manifest
 
 on:
-  release:
-    types: [published]
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
 
 permissions:
   contents: write
 
 jobs:
   update-scoop-manifest:
-    if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-24.04
 
     steps:
@@ -21,7 +23,7 @@ jobs:
         id: meta
         shell: bash
         env:
-          TAG: ${{ github.event.release.tag_name }}
+          TAG: ${{ inputs.tag }}
           REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail

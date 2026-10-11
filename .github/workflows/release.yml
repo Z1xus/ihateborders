@@ -50,7 +50,15 @@ jobs:
         with:
           subject-path: ihateborders.exe
 
-      - run: gh release create "$GITHUB_REF_NAME" ihateborders.exe BUILD.txt SHA256SUMS.txt --verify-tag --draft --generate-notes
+      - run: gh release create "$GITHUB_REF_NAME" ihateborders.exe BUILD.txt SHA256SUMS.txt --verify-tag --latest --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+
+  scoop:
+    needs: release
+    permissions:
+      contents: write
+    uses: ./.github/workflows/update-scoop-manifest.yml
+    with:
+      tag: ${{ github.ref_name }}
