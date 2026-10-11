@@ -1,96 +1,89 @@
+use std::path::{Path, PathBuf};
+use std::{env, fs, io};
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::{fs, path::PathBuf};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WindowPosition
-{
-    pub x: f32,
-    pub y: f32,
+use crate::system::Window;
+
+#[derive(Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Fit {
+    pub resize: bool,
+    pub display: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Config
-{
-    #[serde(default)]
-    pub auto_borderless_apps: Vec<String>,
-
-    #[serde(default)]
-    pub run_on_startup: bool,
-
-    #[serde(default)]
-    pub startup_admin: bool,
-
-    #[serde(default)]
-    pub window_position: Option<WindowPosition>,
+// the order is the priority when more than one rule fits a window
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Match {
+    Title,
+    Path,
+    Name,
 }
 
-impl Default for Config
-{
-    fn default() -> Self
-    {
+#[derive(Serialize, Deserialize)]
+pub struct Rule {
+    pub path: PathBuf,
+    pub title: String,
+    #[serde(rename = "match")]
+    pub by: Match,
+    #[serde(flatten)]
+    pub fit: Fit,
+}
+
+impl Rule {
+    pub fn fits(&self, window: &Window) -> bool {
+        let name = |path: &Path| path.file_name().map(|name| name.to_ascii_lowercase());
+        let named = name(&self.path) == name(&window.path);
+        match self.by {
+            Match::Title => named && self.title == window.title,
+            Match::Path => {
+                let path = window.path.as_os_str();
+                self.path.as_os_str().eq_ignore_ascii_case(path)
+            }
+            Match::Name => named,
+        }
+    }
+}
+
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Config {
+    #[serde(flatten)]
+    pub fit: Fit,
+    pub apps: Vec<Rule>,
+}
+
+impl Default for Fit {
+    fn default() -> Self {
         Self {
-            auto_borderless_apps: Vec::new(),
-            run_on_startup: false,
-            startup_admin: false,
-            window_position: None,
+            resize: true,
+            display: None,
         }
     }
 }
 
-impl Config
-{
-    pub fn load() -> Result<Self>
-    {
-        let config_path = Self::get_config_path()?;
+fn file() -> PathBuf {
+    let folder = PathBuf::from(env::var_os("APPDATA").unwrap_or_default());
+    folder.join("ihateborders").join("config.toml")
+}
 
-        if !config_path.exists() {
-            let config = Self::default();
-            config.save()?;
-            return Ok(config);
-        }
-
-        let content = fs::read_to_string(&config_path)?;
-        let config: Self = serde_json::from_str(&content)?;
-        Ok(config)
+pub fn load() -> Result<Config> {
+    let file = file();
+    match fs::read_to_string(&file) {
+        Ok(text) => toml::from_str(&text).map_err(|error| {
+            // the next save must not replace a file that the user wrote
+            let _ = fs::rename(&file, file.with_extension("broken.toml"));
+            error.into()
+        }),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(Config::default()),
+        Err(error) => Err(error.into()),
     }
+}
 
-    pub fn save(&self) -> Result<()>
-    {
-        let config_path = Self::get_config_path()?;
-
-        if let Some(parent) = config_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-
-        let content = serde_json::to_string_pretty(self)?;
-        fs::write(&config_path, content)?;
-        Ok(())
-    }
-
-    pub fn get_config_path() -> Result<PathBuf>
-    {
-        let exe_path = std::env::current_exe()?;
-        let exe_dir = exe_path
-            .parent()
-            .ok_or_else(|| anyhow::anyhow!("Failed to get executable directory"))?;
-        Ok(exe_dir.join("ihateborders_config.json"))
-    }
-
-    pub fn add_auto_borderless(&mut self, process_name: String)
-    {
-        if !self.auto_borderless_apps.contains(&process_name) {
-            self.auto_borderless_apps.push(process_name);
-        }
-    }
-
-    pub fn remove_auto_borderless(&mut self, process_name: &str)
-    {
-        self.auto_borderless_apps.retain(|app| app != process_name);
-    }
-
-    pub fn is_auto_borderless(&self, process_name: &str) -> bool
-    {
-        self.auto_borderless_apps.contains(&process_name.to_string())
-    }
+pub fn save(config: &Config) -> Result<()> {
+    let file = file();
+    fs::create_dir_all(file.with_file_name(""))?;
+    Ok(fs::write(file, toml::to_string(config)?)?)
 }
