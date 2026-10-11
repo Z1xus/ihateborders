@@ -6,31 +6,28 @@
 
 A lightweight Windows utility that allows you to toggle window borders on/off for any application window, creating a borderless fullscreen experience.
 
+![ihateborders](https://github.com/Z1xus/ihateborders/blob/assets/screenshot.png?raw=true)
+
 ### Why ihateborders?
 This project was created as a free and open-source alternative to [Borderless Gaming](https://github.com/Codeusa/Borderless-Gaming) by Codeusa, which became a paid application on Steam and had all free release binaries removed from GitHub.
 
 ### Installation
+Download the latest release from the [Releases](https://github.com/z1xus/ihateborders/releases) page, or install it with Scoop:
 
-#### Portable
-Download the latest release from the [Releases](https://github.com/z1xus/ihateborders/releases) page.
-
-Releases are reproducible and immutable once published, and you can check a download with `gh attestation verify ihateborders.exe -R Z1xus/ihateborders`.
-
-#### Scoop
 ```bash
 scoop install https://raw.githubusercontent.com/z1xus/ihateborders/main/scoop/ihateborders.json
 ```
 
 ### Usage
-Open ihateborders, pick a window and press Make Borderless. A double click on the window works too.
+Open ihateborders, pick a window and press Make Borderless.
 
-The window is resized to fill the display by default. Games that only render at one size don't handle that well, so for those turn "Resize to screen" off and the window keeps its size and gets centered instead.
+The window is resized to fill the display by default.
 
-"Always borderless" does it automatically every time the app opens. These apps are matched by exe name, and you can switch that to the full path or the window title in the settings (useful when one exe runs several apps, like javaw.exe).
+If you want your app to be borderless on start you can check "Always borderless". By default it's matched by exe name, you can change it to the full path or the window title by going into settings (useful when one exe runs several apps, like javaw.exe).
 
-The settings also have a global shortcut for the active window and an option to start with Windows in the tray. The config is saved in `%APPDATA%\ihateborders\config.toml`.
+In the settings window you can also change the global shortcut for the active window and make it start with Windows in the tray. The config is saved in `%APPDATA%\ihateborders\config.toml`.
 
-There is also a CLI:
+If you want to trigger it from AutoHotkey or a script, there is a CLI:
 
 ```bash
 ihateborders toggle              # the active window
@@ -49,12 +46,17 @@ cargo build --release
 ```
 3. The binary will be located in the `target/release` directory
 
+### Releases
+All releases are built by [CI](.github/workflows/release.yml) from the tagged commit. They are reproducible and immutable once published, and you can check them with:
+
+```bash
+gh attestation verify ihateborders.exe -R Z1xus/ihateborders
+```
+
 ### Requirements
 - Windows 10/11
-- Administrator privileges may be required for some applications
+- Some apps may require Administrator privileges
 
 ### License
-This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details. The icons are from [Lucide](https://lucide.dev) (ISC).
-
-### Contributing
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.  
+The icons are from [Lucide](https://lucide.dev) (ISC).
