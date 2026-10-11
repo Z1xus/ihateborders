@@ -3,6 +3,7 @@
 mod app;
 mod config;
 mod settings;
+mod shortcut;
 mod state;
 mod system;
 mod theme;

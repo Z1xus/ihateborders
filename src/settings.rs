@@ -1,6 +1,6 @@
 use eframe::egui::{
-    Align, Button, CentralPanel, ComboBox, Context, Image, Label, Layout, RichText, ScrollArea,
-    Sense, Vec2, ViewportBuilder, ViewportId, vec2,
+    Align, Button, CentralPanel, ComboBox, Context, Event, Image, Key, Label, Layout, RichText,
+    ScrollArea, Sense, Ui, Vec2, ViewportBuilder, ViewportId, vec2,
 };
 
 use crate::config::Match;
@@ -34,6 +34,7 @@ pub fn show(context: &Context, state: &mut State) {
             if theme::check(ui, tray, "Keep running in the tray").changed() {
                 state.save();
             }
+            shortcut(ui, state);
             if let Some(error) = state.error {
                 ui.colored_label(theme::LIGHT, error);
             }
@@ -93,6 +94,86 @@ pub fn show(context: &Context, state: &mut State) {
         });
         if ui.input(|input| input.viewport().close_requested()) {
             state.settings = false;
+            state.bind();
         }
     });
+}
+
+fn shortcut(ui: &mut Ui, state: &mut State) {
+    ui.horizontal(|ui| {
+        ui.label("Shortcut");
+        let keys = match (state.recording, state.config.shortcut.as_str()) {
+            (true, _) => "Press keys…",
+            (false, "") => "None",
+            (false, keys) => keys,
+        };
+        let keys = ui.button(keys).on_hover_text("Toggles the active window");
+        if keys.clicked() && !state.recording {
+            state.record();
+        } else if keys.clicked() {
+            state.bind();
+        }
+        if !state.config.shortcut.is_empty() && !state.recording {
+            let gray = ui.visuals().text_color();
+            let remove = Button::image(theme::icon(theme::REMOVE, gray));
+            if ui.add(remove).on_hover_text("Remove").clicked() {
+                state.config.shortcut.clear();
+                state.bind();
+            }
+        }
+        if !state.bound {
+            ui.weak("Can't use these keys");
+        }
+    });
+    if !state.recording {
+        return;
+    }
+    match pressed(ui) {
+        Some(Key::Escape) => state.bind(),
+        Some(key) => {
+            let held = ui.input(|input| input.modifiers);
+            let held = [
+                (held.ctrl, "Ctrl"),
+                (held.alt, "Alt"),
+                (held.shift, "Shift"),
+            ];
+            let mut keys: Vec<&str> = held
+                .iter()
+                .filter(|held| held.0)
+                .map(|held| held.1)
+                .collect();
+            // a key with no modifier is taken from every app, so only the function keys can be alone
+            if keys.is_empty() && !(Key::F1..=Key::F35).contains(&key) {
+                return;
+            }
+            keys.push(key.name());
+            state.config.shortcut = keys.join("+");
+            state.bind();
+        }
+        None => {}
+    }
+}
+
+fn pressed(ui: &Ui) -> Option<Key> {
+    let modifier = |key: &Key| {
+        matches!(
+            key,
+            Key::ShiftLeft
+                | Key::ShiftRight
+                | Key::ControlLeft
+                | Key::ControlRight
+                | Key::AltLeft
+                | Key::AltRight
+                | Key::SuperLeft
+                | Key::SuperRight
+        )
+    };
+    ui.input(|input| {
+        input.events.iter().find_map(|event| match event {
+            Event::Key {
+                key, pressed: true, ..
+            } if !modifier(key) => Some(*key),
+            _ => None,
+        })
+    })
 }

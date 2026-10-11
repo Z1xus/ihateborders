@@ -29,12 +29,12 @@ use windows::Win32::UI::Accessibility::{HWINEVENTHOOK, SetWinEventHook};
 use windows::Win32::UI::Shell::{SHFILEINFOW, SHGFI_ICON, SHGFI_LARGEICON, SHGetFileInfoW};
 use windows::Win32::UI::WindowsAndMessaging::{
     DestroyIcon, EVENT_OBJECT_DESTROY, EVENT_OBJECT_HIDE, EVENT_OBJECT_NAMECHANGE, EnumWindows,
-    GA_ROOT, GW_OWNER, GWL_EXSTYLE, GWL_STYLE, GetAncestor, GetClientRect, GetIconInfo, GetWindow,
-    GetWindowLongPtrW, GetWindowRect, GetWindowTextW, GetWindowThreadProcessId, ICONINFO,
-    IsWindowVisible, OBJID_WINDOW, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE,
-    SWP_NOZORDER, SetWindowLongPtrW, SetWindowPos, WINEVENT_OUTOFCONTEXT, WS_CAPTION,
-    WS_EX_CLIENTEDGE, WS_EX_DLGMODALFRAME, WS_EX_STATICEDGE, WS_EX_TOOLWINDOW, WS_EX_WINDOWEDGE,
-    WS_THICKFRAME,
+    GA_ROOT, GW_OWNER, GWL_EXSTYLE, GWL_STYLE, GetAncestor, GetClientRect, GetForegroundWindow,
+    GetIconInfo, GetWindow, GetWindowLongPtrW, GetWindowRect, GetWindowTextW,
+    GetWindowThreadProcessId, ICONINFO, IsWindowVisible, OBJID_WINDOW, SWP_FRAMECHANGED,
+    SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SetWindowLongPtrW, SetWindowPos,
+    WINEVENT_OUTOFCONTEXT, WS_CAPTION, WS_EX_CLIENTEDGE, WS_EX_DLGMODALFRAME, WS_EX_STATICEDGE,
+    WS_EX_TOOLWINDOW, WS_EX_WINDOWEDGE, WS_THICKFRAME,
 };
 use windows::core::{BOOL, HSTRING, PWSTR};
 use windows_registry::CURRENT_USER;
@@ -156,6 +156,11 @@ fn path(process: u32) -> Option<PathBuf> {
         found.ok()?;
     }
     Some(OsString::from_wide(&name[..length as usize]).into())
+}
+
+pub fn active() -> Option<isize> {
+    let window = unsafe { GetForegroundWindow() };
+    (!window.is_invalid()).then_some(window.0 as isize)
 }
 
 pub fn displays() -> Vec<Display> {

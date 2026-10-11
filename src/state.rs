@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 use eframe::egui::{ColorImage, Context, TextureHandle, TextureOptions};
 
 use crate::config::{self, Config, Fit, Match, Rule};
+use crate::shortcut::Shortcut;
 use crate::system::{self, Before, Display, Window};
 
 const REFUSED: &str = "Couldn't change this window. Try as administrator";
@@ -20,6 +21,9 @@ pub struct State {
     pub error: Option<&'static str>,
     pub notes: HashMap<isize, &'static str>,
     pub fonts: Vec<&'static str>,
+    pub shortcut: Option<Shortcut>,
+    pub bound: bool,
+    pub recording: bool,
     before: HashMap<isize, Before>,
     icons: HashMap<PathBuf, Option<TextureHandle>>,
     polled: Option<Instant>,
@@ -28,7 +32,11 @@ pub struct State {
 impl State {
     pub fn new() -> Self {
         let config = config::load();
+        let keys = config.as_ref().map_or("", |config| &config.shortcut);
         Self {
+            shortcut: Shortcut::new(keys),
+            bound: true,
+            recording: false,
             error: config.is_err().then_some("Couldn't read the settings"),
             notes: HashMap::new(),
             fonts: Vec::new(),
@@ -145,6 +153,31 @@ impl State {
             true => self.restore(window),
             false => self.strip(window),
         }
+    }
+
+    pub fn toggle_active(&mut self) {
+        self.refresh();
+        let active = |window: &&Window| Some(window.id) == system::active();
+        if let Some(window) = self.windows.iter().find(active).cloned() {
+            self.toggle(&window);
+        }
+    }
+
+    pub fn record(&mut self) {
+        self.recording = true;
+        if let Some(shortcut) = &mut self.shortcut {
+            shortcut.set("");
+        }
+    }
+
+    pub fn bind(&mut self) {
+        self.recording = false;
+        let keys = self.config.shortcut.trim();
+        self.bound = self
+            .shortcut
+            .as_mut()
+            .is_some_and(|shortcut| shortcut.set(keys));
+        self.save();
     }
 
     pub fn always(&mut self, window: &Window, always: bool) {

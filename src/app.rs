@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, channel};
 
 use eframe::egui::{Context, IconData, Ui, ViewportBuilder, ViewportCommand};
+use global_hotkey::{GlobalHotKeyEvent, HotKeyState};
 use tray_icon::TrayIcon;
 
 use crate::state::State;
@@ -10,6 +11,7 @@ use crate::{settings, system, theme, tray, view};
 pub enum Asked {
     Open,
     Quit,
+    Toggle,
 }
 
 struct App {
@@ -38,6 +40,7 @@ impl eframe::App for App {
                     self.shown = true;
                     context.send_viewport_cmd(ViewportCommand::Focus);
                 }
+                Asked::Toggle => self.state.toggle_active(),
                 Asked::Quit => {
                     self.quit = true;
                     context.send_viewport_cmd(ViewportCommand::Close);
@@ -93,6 +96,13 @@ pub fn run() -> eframe::Result {
             let wake = move || context.request_repaint();
             let (sender, asked) = channel();
             let tray = tray::tray(&icon, sender.clone(), wake.clone()).ok();
+            let (pressed, woken) = (sender.clone(), wake.clone());
+            GlobalHotKeyEvent::set_event_handler(Some(move |event: GlobalHotKeyEvent| {
+                if event.state == HotKeyState::Pressed {
+                    let _ = pressed.send(Asked::Toggle);
+                    woken();
+                }
+            }));
             system::watch(wake.clone());
             system::listen(move |_| {
                 let _ = sender.send(Asked::Open);

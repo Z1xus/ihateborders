@@ -8,6 +8,7 @@ publish = false
 anyhow = "1.0.104"
 eframe = { version = "0.36.2", default-features = false, features = ["glow"] }
 egui_extras = { version = "0.36.2", default-features = false, features = ["svg"] }
+global-hotkey = "0.8.0"
 image = { version = "0.25.10", default-features = false, features = ["ico"] }
 serde = { version = "1.0.229", features = ["derive"] }
 toml = "1.1.8"

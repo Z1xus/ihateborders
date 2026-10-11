@@ -53,6 +53,7 @@ pub struct Config {
     #[serde(flatten)]
     pub fit: Fit,
     pub tray: bool,
+    pub shortcut: String,
     pub apps: Vec<Rule>,
 }
 
@@ -70,6 +71,7 @@ impl Default for Config {
         Self {
             fit: Fit::default(),
             tray: true,
+            shortcut: String::new(),
             apps: Vec::new(),
         }
     }
