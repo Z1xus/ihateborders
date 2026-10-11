@@ -47,11 +47,12 @@ impl Rule {
     }
 }
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
     #[serde(flatten)]
     pub fit: Fit,
+    pub tray: bool,
     pub apps: Vec<Rule>,
 }
 
@@ -60,6 +61,16 @@ impl Default for Fit {
         Self {
             resize: true,
             display: None,
+        }
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            fit: Fit::default(),
+            tray: true,
+            apps: Vec::new(),
         }
     }
 }

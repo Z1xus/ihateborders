@@ -323,7 +323,7 @@ pub fn icon(path: &Path) -> Option<Icon> {
 
 fn command() -> Option<String> {
     let app = env::current_exe().ok()?;
-    Some(format!("\"{}\"", app.display()))
+    Some(format!("\"{}\" --hidden", app.display()))
 }
 
 pub fn startup() -> bool {

@@ -11,6 +11,7 @@ egui_extras = { version = "0.36.2", default-features = false, features = ["svg"]
 image = { version = "0.25.10", default-features = false, features = ["ico"] }
 serde = { version = "1.0.229", features = ["derive"] }
 toml = "1.1.8"
+tray-icon = { version = "0.26.1", default-features = false }
 windows = { version = "0.62.2", features = [
     "Win32_Foundation",
     "Win32_Graphics_Dwm",

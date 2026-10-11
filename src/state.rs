@@ -45,8 +45,20 @@ impl State {
         }
     }
 
-    pub fn poll(&mut self) {
-        let due = |polled: Instant| polled.elapsed() >= Duration::from_secs(1);
+    // a game can put its frame back and windows sends no event for that
+    pub fn wait(&self, shown: bool) -> Option<Duration> {
+        match shown {
+            true => Some(Duration::from_secs(1)),
+            false if !self.config.apps.is_empty() => Some(Duration::from_secs(3)),
+            false => None,
+        }
+    }
+
+    pub fn poll(&mut self, shown: bool) {
+        let due = |polled: Instant| {
+            let wait = self.wait(shown);
+            wait.is_some_and(|wait| polled.elapsed() >= wait)
+        };
         if !system::changed() && !self.polled.is_none_or(due) {
             return;
         }

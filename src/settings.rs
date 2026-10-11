@@ -30,6 +30,10 @@ pub fn show(context: &Context, state: &mut State) {
             if theme::check(ui, &mut startup, "Start with Windows").changed() {
                 state.start(startup);
             }
+            let tray = &mut state.config.tray;
+            if theme::check(ui, tray, "Keep running in the tray").changed() {
+                state.save();
+            }
             if let Some(error) = state.error {
                 ui.colored_label(theme::LIGHT, error);
             }
