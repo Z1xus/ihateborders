@@ -1,0 +1,19 @@
+VERIFICATION
+
+The author of ihateborders publishes this package. The release workflow of the
+project builds it:
+
+  https://github.com/Z1xus/ihateborders/blob/main/.github/workflows/release.yml
+
+ihateborders.exe is the same file as the asset of the GitHub release with the
+tag v<package version>:
+
+  https://github.com/Z1xus/ihateborders/releases
+
+To check it, compare the hash of the file to SHA256SUMS.txt of that release:
+
+  Get-FileHash ihateborders.exe -Algorithm SHA256
+
+You can also verify the build provenance:
+
+  gh attestation verify ihateborders.exe -R Z1xus/ihateborders

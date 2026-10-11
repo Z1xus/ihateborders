@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>ihateborders</id>
+    <version>$version$</version>
+    <title>ihateborders</title>
+    <authors>Z1xus</authors>
+    <projectUrl>https://github.com/Z1xus/ihateborders</projectUrl>
+    <projectSourceUrl>https://github.com/Z1xus/ihateborders</projectSourceUrl>
+    <packageSourceUrl>https://github.com/Z1xus/ihateborders/tree/main/chocolatey</packageSourceUrl>
+    <bugTrackerUrl>https://github.com/Z1xus/ihateborders/issues</bugTrackerUrl>
+    <licenseUrl>https://github.com/Z1xus/ihateborders/blob/main/LICENSE</licenseUrl>
+    <iconUrl>https://cdn.jsdelivr.net/gh/Z1xus/ihateborders@main/chocolatey/icon.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <releaseNotes>https://github.com/Z1xus/ihateborders/releases/tag/v$version$</releaseNotes>
+    <tags>borderless fullscreen window gaming foss</tags>
+    <summary>A lightweight Windows utility for making any window borderless.</summary>
+    <description>A lightweight Windows utility that allows you to toggle window borders on/off for any application window, creating a borderless fullscreen experience.
+
+Open ihateborders, pick a window and press Make Borderless. The window is resized to fill the display by default.</description>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+    <file src="..\LICENSE" target="tools\LICENSE.txt" />
+  </files>
+</package>
