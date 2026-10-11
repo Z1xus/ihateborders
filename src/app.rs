@@ -1,3 +1,4 @@
+use std::env;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, channel};
 
@@ -11,7 +12,7 @@ use crate::{settings, system, theme, tray, view};
 pub enum Asked {
     Open,
     Quit,
-    Toggle,
+    Run(String),
 }
 
 struct App {
@@ -40,7 +41,7 @@ impl eframe::App for App {
                     self.shown = true;
                     context.send_viewport_cmd(ViewportCommand::Focus);
                 }
-                Asked::Toggle => self.state.toggle_active(),
+                Asked::Run(command) => self.state.run(&command),
                 Asked::Quit => {
                     self.quit = true;
                     context.send_viewport_cmd(ViewportCommand::Close);
@@ -67,8 +68,14 @@ impl eframe::App for App {
 }
 
 pub fn run() -> eframe::Result {
-    let hidden = std::env::args().any(|argument| argument == "--hidden");
-    if system::send("") {
+    let command = env::args().skip(1).collect::<Vec<_>>().join("\n");
+    let hidden = command == "--hidden";
+    if system::send(&command) {
+        return Ok(());
+    }
+    // a command with no app to take it runs once, with no window
+    if !command.is_empty() && !hidden {
+        State::new().run(&command);
         return Ok(());
     }
     let icon = image::load_from_memory(include_bytes!("../assets/icon.ico"))
@@ -99,13 +106,17 @@ pub fn run() -> eframe::Result {
             let (pressed, woken) = (sender.clone(), wake.clone());
             GlobalHotKeyEvent::set_event_handler(Some(move |event: GlobalHotKeyEvent| {
                 if event.state == HotKeyState::Pressed {
-                    let _ = pressed.send(Asked::Toggle);
+                    let _ = pressed.send(Asked::Run("toggle".into()));
                     woken();
                 }
             }));
             system::watch(wake.clone());
-            system::listen(move |_| {
-                let _ = sender.send(Asked::Open);
+            system::listen(move |command| {
+                let asked = match command.is_empty() {
+                    true => Asked::Open,
+                    false => Asked::Run(command),
+                };
+                let _ = sender.send(asked);
                 wake();
             });
             Ok(Box::new(App {

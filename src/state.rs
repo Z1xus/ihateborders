@@ -155,11 +155,27 @@ impl State {
         }
     }
 
-    pub fn toggle_active(&mut self) {
+    // a verb, and the exe of an app or nothing for the active window
+    pub fn run(&mut self, command: &str) {
+        let mut lines = command.lines();
+        let (verb, app) = (lines.next().unwrap_or_default(), lines.next());
         self.refresh();
-        let active = |window: &&Window| Some(window.id) == system::active();
-        if let Some(window) = self.windows.iter().find(active).cloned() {
-            self.toggle(&window);
+        let active = system::active();
+        let aimed = |window: &&Window| match app {
+            Some(app) => {
+                let name = window.path.file_name();
+                name.is_some_and(|name| name.eq_ignore_ascii_case(app))
+            }
+            None => Some(window.id) == active,
+        };
+        let windows: Vec<Window> = self.windows.iter().filter(aimed).cloned().collect();
+        for window in &windows {
+            match (verb, window.borderless) {
+                ("toggle", _) => self.toggle(window),
+                ("borderless", false) => self.strip(window),
+                ("restore", true) if self.rule(window).is_none() => self.restore(window),
+                _ => {}
+            }
         }
     }
 
