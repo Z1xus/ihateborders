@@ -1,12 +1,12 @@
 {
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A lightweight Windows utility for making any window borderless.",
   "homepage": "https://github.com/Z1xus/ihateborders",
   "license": "GPL-3.0",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/Z1xus/ihateborders/releases/download/v2.0.0/ihateborders.exe",
-      "hash": "3256da8d1e7c0be69c0e1e5bc1e5ffd41cbf4ae36ad7f0401b7c5ae9b4dfd7b1"
+      "url": "https://github.com/Z1xus/ihateborders/releases/download/v2.0.1/ihateborders.exe",
+      "hash": "6fcb0a35669c5a6d23748b915fbe53535fc37a72b4c5ec03e11046c85bf323fe"
     }
   },
   "bin": "ihateborders.exe",
