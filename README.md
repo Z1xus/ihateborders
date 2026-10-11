@@ -1,12 +1,12 @@
 ## ihateborders <img src="assets/icon.ico" alt="ihateborders icon" width="48" height="48" align="left">
+<img src="https://github.com/Z1xus/ihateborders/blob/assets/screenshot.png?raw=true" alt="ihateborders" width="380" align="right">
+
 ![Windows Only](https://img.shields.io/badge/platform-Windows-blue?logo=windows)
 [![Downloads](https://img.shields.io/github/downloads/z1xus/ihateborders/total)](https://github.com/z1xus/ihateborders/releases)
 [![Issues](https://img.shields.io/github/issues/z1xus/ihateborders)](https://github.com/z1xus/ihateborders/issues)
 [![Pull Requests](https://img.shields.io/github/issues-pr/z1xus/ihateborders)](https://github.com/z1xus/ihateborders/pulls)
 
 A lightweight Windows utility that allows you to toggle window borders on/off for any application window, creating a borderless fullscreen experience.
-
-![ihateborders](https://github.com/Z1xus/ihateborders/blob/assets/screenshot.png?raw=true)
 
 ### Why ihateborders?
 This project was created as a free and open-source alternative to [Borderless Gaming](https://github.com/Codeusa/Borderless-Gaming) by Codeusa, which became a paid application on Steam and had all free release binaries removed from GitHub.
