@@ -14,25 +14,29 @@ This project was created as a free and open-source alternative to [Borderless Ga
 #### Portable
 Download the latest release from the [Releases](https://github.com/z1xus/ihateborders/releases) page.
 
+Releases are reproducible and immutable once published, and you can check a download with `gh attestation verify ihateborders.exe -R Z1xus/ihateborders`.
+
 #### Scoop
 ```bash
 scoop install https://raw.githubusercontent.com/z1xus/ihateborders/main/scoop/ihateborders.json
 ```
 
 ### Usage
-1. Run the executable.
-2. Select a window from the dropdown list.
-3. Optionally check "Resize to screen" to make the window fullscreen when removing borders.
-4. Click "Make Borderless" or "Restore Borders" to toggle the window's border state.
+Open ihateborders, pick a window and press Make Borderless. A double click on the window works too.
 
-### Interface
-- **[B]** indicates a borderless window
-- **[W]** indicates a windowed (with borders) window
-- Windows are automatically filtered to exclude system windows
-- The window list refreshes automatically every 5 seconds
+The window is resized to fill the display by default. Games that only render at one size don't handle that well, so for those turn "Resize to screen" off and the window keeps its size and gets centered instead.
 
-### Keyboard Shortcuts
-- `F5`: Manually refresh the window list
+"Always borderless" does it automatically every time the app opens. These apps are matched by exe name, and you can switch that to the full path or the window title in the settings (useful when one exe runs several apps, like javaw.exe).
+
+The settings also have a global shortcut for the active window and an option to start with Windows in the tray. The config is saved in `%APPDATA%\ihateborders\config.toml`.
+
+There is also a CLI:
+
+```bash
+ihateborders toggle              # the active window
+ihateborders borderless hl2.exe  # all windows of an app
+ihateborders restore hl2.exe
+```
 
 ### Building
 1. Clone the repository
@@ -50,7 +54,7 @@ cargo build --release
 - Administrator privileges may be required for some applications
 
 ### License
-This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) file for details. The icons are from [Lucide](https://lucide.dev) (ISC).
 
 ### Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
