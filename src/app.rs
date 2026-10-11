@@ -2,7 +2,9 @@ use std::env;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, channel};
 
-use eframe::egui::{Context, IconData, Ui, ViewportBuilder, ViewportCommand};
+use eframe::egui::{
+    Context, IconData, SystemTheme, Ui, ViewportBuilder, ViewportCommand, ViewportId,
+};
 use global_hotkey::{GlobalHotKeyEvent, HotKeyState};
 use tray_icon::TrayIcon;
 
@@ -26,7 +28,14 @@ struct App {
 
 impl eframe::App for App {
     fn logic(&mut self, context: &Context, _: &mut eframe::Frame) {
-        self.state.poll(self.shown);
+        // winit resets the title bar on a windows settings change
+        if self.state.poll(self.shown) && self.shown {
+            let dark = ViewportCommand::SetTheme(SystemTheme::Dark);
+            if self.state.settings {
+                context.send_viewport_cmd_to(ViewportId::from_hash_of("settings"), dark.clone());
+            }
+            context.send_viewport_cmd(dark);
+        }
         // eframe shows the window after the first frame, so it hides in the next one
         if self.hidden && context.cumulative_pass_nr() > 0 {
             context.send_viewport_cmd(ViewportCommand::Visible(false));

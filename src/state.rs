@@ -62,13 +62,13 @@ impl State {
         }
     }
 
-    pub fn poll(&mut self, shown: bool) {
+    pub fn poll(&mut self, shown: bool) -> bool {
         let due = |polled: Instant| {
             let wait = self.wait(shown);
             wait.is_some_and(|wait| polled.elapsed() >= wait)
         };
         if !system::changed() && !self.polled.is_none_or(due) {
-            return;
+            return false;
         }
         self.refresh();
         let ruled = |window: &&Window| {
@@ -80,6 +80,7 @@ impl State {
             self.follow(window);
             self.strip(window);
         }
+        true
     }
 
     // an app that moved keeps its rule, and the rule gets the new place
