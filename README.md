@@ -18,6 +18,12 @@ Download the latest release from the [Releases](https://github.com/z1xus/ihatebo
 scoop install https://raw.githubusercontent.com/z1xus/ihateborders/main/scoop/ihateborders.json
 ```
 
+or with Chocolatey:
+
+```bash
+choco install ihateborders
+```
+
 ### Usage
 Open ihateborders, pick a window and press Make Borderless.
 
